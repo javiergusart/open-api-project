@@ -65,6 +65,32 @@ h1 {
   font-size: 0.95rem;
 }
 
+.dataset-nav {
+  display: inline-flex;
+  border: 1px solid #242a35;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.dataset-btn {
+  border: 0;
+  background: #171a21;
+  color: #c8ced8;
+  padding: 7px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.dataset-btn + .dataset-btn {
+  border-left: 1px solid #242a35;
+}
+
+.dataset-btn.active {
+  background: #2b3342;
+  color: #ffffff;
+}
+
 .unit-toggle {
   display: inline-flex;
   border: 1px solid #242a35;
@@ -160,6 +186,15 @@ h1 {
   color: #dfbcff;
 }
 
+.aqi-pill {
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(123, 233, 156, 0.17);
+  color: #98efb3;
+}
+
 .city-country {
   margin: 2px 0 10px;
   color: #8f98a8;
@@ -251,6 +286,15 @@ h1 {
   .unit-toggle {
     width: 100%;
     max-width: 320px;
+  }
+
+  .dataset-nav {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .dataset-btn {
+    flex: 1;
   }
 
   .unit-btn {
