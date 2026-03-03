@@ -1,6 +1,8 @@
 const statusEl = document.querySelector("#status");
 const cityListEl = document.querySelector("#city-list");
 const unitButtons = document.querySelectorAll(".unit-btn");
+const unitToggleEl = document.querySelector(".unit-toggle");
+const datasetButtons = document.querySelectorAll(".dataset-btn");
 
 const CITIES = [
   {
@@ -14,6 +16,18 @@ const CITIES = [
     country: "Colombia",
     latitude: 10.391,
     longitude: -75.4794,
+  },
+  {
+    name: "Maracaibo",
+    country: "Venezuela",
+    latitude: 10.6545,
+    longitude: -71.6406,
+  },
+  {
+    name: "Miami",
+    country: "FL, USA",
+    latitude: 25.7617,
+    longitude: -80.1918,
   },
 ];
 
@@ -49,10 +63,14 @@ const WEATHER_CODE_LABELS = {
 };
 
 let selectedUnit = "fahrenheit";
-let cityWeatherData = [];
+let selectedDataset = "weather";
+let cityData = [];
 
-const buildForecastUrl = ({ latitude, longitude }) =>
+const buildWeatherUrl = ({ latitude, longitude }) =>
   `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`;
+
+const buildAirQualityUrl = ({ latitude, longitude }) =>
+  `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${latitude}&longitude=${longitude}&current=us_aqi,pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone&timezone=auto`;
 
 const formatTemperature = (valueInCelsius) => {
   if (typeof valueInCelsius !== "number") {
@@ -135,11 +153,61 @@ const formatTimezoneLabel = (timezone, timezoneAbbreviation) => {
     return "--";
   }
 
+  const formattedTimezone = timezone.replaceAll("_", " ");
+
   if (!timezoneAbbreviation) {
-    return timezone;
+    return formattedTimezone;
   }
 
-  return `${timezoneAbbreviation} (${timezone})`;
+  return `${timezoneAbbreviation} (${formattedTimezone})`;
+};
+
+const getAqiCategory = (aqi) => {
+  if (typeof aqi !== "number") {
+    return "Unknown";
+  }
+
+  if (aqi <= 50) {
+    return "Good";
+  }
+
+  if (aqi <= 100) {
+    return "Moderate";
+  }
+
+  if (aqi <= 150) {
+    return "Unhealthy for Sensitive Groups";
+  }
+
+  if (aqi <= 200) {
+    return "Unhealthy";
+  }
+
+  if (aqi <= 300) {
+    return "Very Unhealthy";
+  }
+
+  return "Hazardous";
+};
+
+const formatValue = (value, unit) => {
+  if (typeof value !== "number") {
+    return "--";
+  }
+
+  const numberLabel = Number.isInteger(value)
+    ? value.toString()
+    : value.toFixed(1);
+  return `${numberLabel} ${unit || ""}`.trim();
+};
+
+const getLoadingMessage = () =>
+  selectedDataset === "weather"
+    ? "Loading weather..."
+    : "Loading air quality...";
+
+const setDatasetControls = () => {
+  unitToggleEl.hidden = selectedDataset !== "weather";
 };
 
 const setLastRefreshedStatus = () => {
@@ -192,29 +260,78 @@ const renderCityWeather = (
   `;
 };
 
+const renderCityAirQuality = (
+  city,
+  current,
+  currentUnits,
+  timezone,
+  timezoneAbbreviation,
+) => {
+  if (!current) {
+    return `
+      <li class="city-card">
+        <h2 class="city-name">${city.name}</h2>
+        <p class="city-country">${city.country}</p>
+        <p class="row"><span class="label">Status</span><span class="value">No data</span></p>
+      </li>
+    `;
+  }
+
+  const cityTime = formatCityTime(timezone);
+  const timezoneLabel = formatTimezoneLabel(timezone, timezoneAbbreviation);
+  const aqiCategory = getAqiCategory(current.us_aqi);
+
+  return `
+    <li class="city-card">
+      <div class="city-top">
+        <h2 class="city-name">${city.name}</h2>
+        <span class="aqi-pill">${aqiCategory}</span>
+      </div>
+      <p class="city-country">${city.country}</p>
+      <p class="city-time">Local time: ${cityTime}</p>
+      <p class="row"><span class="label">Time Zone</span><span class="value">${timezoneLabel}</span></p>
+      <p class="row"><span class="label">US AQI</span><span class="value">${formatValue(current.us_aqi, currentUnits?.us_aqi)}</span></p>
+      <p class="row"><span class="label">PM2.5</span><span class="value">${formatValue(current.pm2_5, currentUnits?.pm2_5)}</span></p>
+      <p class="row"><span class="label">PM10</span><span class="value">${formatValue(current.pm10, currentUnits?.pm10)}</span></p>
+      <p class="row"><span class="label">CO</span><span class="value">${formatValue(current.carbon_monoxide, currentUnits?.carbon_monoxide)}</span></p>
+      <p class="row"><span class="label">NO₂</span><span class="value">${formatValue(current.nitrogen_dioxide, currentUnits?.nitrogen_dioxide)}</span></p>
+      <p class="row"><span class="label">O₃</span><span class="value">${formatValue(current.ozone, currentUnits?.ozone)}</span></p>
+    </li>
+  `;
+};
+
 const renderAllCities = () => {
-  cityListEl.innerHTML = cityWeatherData
-    .map(({ city, current, currentUnits, timezone, timezoneAbbreviation }) =>
-      renderCityWeather(
+  cityListEl.innerHTML = cityData
+    .map(({ city, current, currentUnits, timezone, timezoneAbbreviation }) => {
+      if (selectedDataset === "weather") {
+        return renderCityWeather(
+          city,
+          current,
+          currentUnits,
+          timezone,
+          timezoneAbbreviation,
+        );
+      }
+
+      return renderCityAirQuality(
         city,
         current,
         currentUnits,
         timezone,
         timezoneAbbreviation,
-      ),
-    )
+      );
+    })
     .join("");
 };
 
 const fetchCityWeather = async (city) => {
-  const response = await fetch(buildForecastUrl(city));
+  const response = await fetch(buildWeatherUrl(city));
 
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
   }
 
   const data = await response.json();
-  console.log(`${city.name} response:`, data);
   return {
     city,
     current: data.current,
@@ -224,18 +341,45 @@ const fetchCityWeather = async (city) => {
   };
 };
 
-const fetchWeather = async () => {
-  statusEl.textContent = "Loading cities...";
+const fetchCityAirQuality = async (city) => {
+  const response = await fetch(buildAirQualityUrl(city));
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return {
+    city,
+    current: data.current,
+    currentUnits: data.current_units,
+    timezone: data.timezone,
+    timezoneAbbreviation: data.timezone_abbreviation,
+  };
+};
+
+const fetchSelectedDataset = async () => {
+  statusEl.textContent = getLoadingMessage();
 
   try {
-    cityWeatherData = await Promise.all(
-      CITIES.map((city) => fetchCityWeather(city)),
+    cityData = await Promise.all(
+      CITIES.map((city) => {
+        if (selectedDataset === "weather") {
+          return fetchCityWeather(city);
+        }
+
+        return fetchCityAirQuality(city);
+      }),
     );
+
     renderAllCities();
     setLastRefreshedStatus();
   } catch (error) {
-    console.error("Weather fetch error:", error);
-    statusEl.textContent = "Failed to load weather.";
+    console.error("Data fetch error:", error);
+    statusEl.textContent =
+      selectedDataset === "weather"
+        ? "Failed to load weather."
+        : "Failed to load air quality.";
     cityListEl.innerHTML = "";
   }
 };
@@ -246,8 +390,24 @@ unitButtons.forEach((button) => {
     unitButtons.forEach((unitButton) => {
       unitButton.classList.toggle("active", unitButton === button);
     });
-    renderAllCities();
+    if (selectedDataset === "weather") {
+      renderAllCities();
+    }
   });
 });
 
-fetchWeather();
+datasetButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedDataset = button.dataset.dataset;
+
+    datasetButtons.forEach((datasetButton) => {
+      datasetButton.classList.toggle("active", datasetButton === button);
+    });
+
+    setDatasetControls();
+    fetchSelectedDataset();
+  });
+});
+
+setDatasetControls();
+fetchSelectedDataset();
