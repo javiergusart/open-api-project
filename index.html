@@ -12,6 +12,25 @@
       <header class="app-header">
         <h1>Open API Project</h1>
         <p id="status">Loading cities...</p>
+        <form class="city-search" id="city-search" aria-label="Search city">
+          <label for="city-input" class="sr-only">Search for a city</label>
+          <input
+            id="city-input"
+            name="city"
+            type="text"
+            placeholder="Search for a city"
+            autocomplete="off"
+          />
+          <button type="submit">Add City</button>
+          <ul
+            id="city-suggestions"
+            class="city-suggestions"
+            aria-label="City suggestions"
+          ></ul>
+        </form>
+        <div id="undo-bar" class="undo-bar" hidden>
+          <button id="undo-btn" type="button">Undo Delete</button>
+        </div>
         <nav class="dataset-nav" aria-label="Data point navigation">
           <button
             type="button"
@@ -33,7 +52,7 @@
           </button>
         </div>
       </header>
-      <section class="cities" aria-label="City weather list">
+      <section class="cities" aria-label="City data list">
         <ul id="city-list" class="city-list"></ul>
       </section>
       <p class="note">
