@@ -98,10 +98,10 @@ const formatTemperature = (valueInCelsius) => {
 
   if (selectedUnit === "fahrenheit") {
     const valueInFahrenheit = (valueInCelsius * 9) / 5 + 32;
-    return `${valueInFahrenheit.toFixed(1)} °F`;
+    return `${valueInFahrenheit.toFixed(1)} &deg;F`;
   }
 
-  return `${valueInCelsius.toFixed(1)} °C`;
+  return `${valueInCelsius.toFixed(1)} &deg;C`;
 };
 
 const formatWindSpeed = (windSpeed, windUnitFromApi) => {
@@ -344,8 +344,8 @@ const renderCityAirQuality = (
       <p class="row"><span class="label">PM2.5</span><span class="value">${formatValue(current.pm2_5, currentUnits?.pm2_5)}</span></p>
       <p class="row"><span class="label">PM10</span><span class="value">${formatValue(current.pm10, currentUnits?.pm10)}</span></p>
       <p class="row"><span class="label">CO</span><span class="value">${formatValue(current.carbon_monoxide, currentUnits?.carbon_monoxide)}</span></p>
-      <p class="row"><span class="label">NO₂</span><span class="value">${formatValue(current.nitrogen_dioxide, currentUnits?.nitrogen_dioxide)}</span></p>
-      <p class="row"><span class="label">O₃</span><span class="value">${formatValue(current.ozone, currentUnits?.ozone)}</span></p>
+      <p class="row"><span class="label">NO<sub>2</sub></span><span class="value">${formatValue(current.nitrogen_dioxide, currentUnits?.nitrogen_dioxide)}</span></p>
+      <p class="row"><span class="label">O<sub>3</sub></span><span class="value">${formatValue(current.ozone, currentUnits?.ozone)}</span></p>
     </li>
   `;
 };
